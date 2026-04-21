@@ -1,0 +1,28 @@
+{
+  "_comment": "One row from learning_store after stage5_learn.merge. JSON columns are stored as strings in SQLite; shown here parsed.",
+  "id": 6,
+  "client_id": "talkweb",
+  "loop_id": "8db985b5-8957-4270-9d27-f6aee8be6ddc",
+  "updated_at": "2026-04-20 14:32:45",
+  "priority_topics": [
+    "Long-form comparison of AI receptionist vendors for UK housing associations",
+    "SEO-led piece on virtual receptionist with keyword in title, first 100 words, and at least one H2",
+    "Case study: reducing missed calls with business phone automation"
+  ],
+  "do_not_repeat": [
+    "Avoid thin topical coverage vs the brief—last draft scored low on topic depth; add substantiation and examples."
+  ],
+  "quality_patterns": [
+    "Strong topical coverage of AI receptionists for UK SMEs with practical sections on benefits and implementation.",
+    "Evaluator scores (overall /100, subscores out of column max): overall 72.5; topic_depth 20/25; keywords 19/25; readability 15.5/20; structure 16/20; internal_links 6/10",
+    "Draft quality gate (advisory, fix when possible): internal link placeholders could be increased for cornerstone content."
+  ],
+  "keyword_registry": [
+    "ai receptionist",
+    "virtual receptionist",
+    "automated customer service",
+    "business phone automation",
+    "24/7 customer support",
+    "UK SMEs"
+  ]
+}

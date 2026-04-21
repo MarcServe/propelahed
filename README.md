@@ -92,6 +92,10 @@ python -m pytest -q
 | `scripts/run_loop_once.sh` | Example one-shot runner for cron / automation |
 | [`JUDGEMENT.md`](JUDGEMENT.md) | Scope, risks, and what was cut (see also [`seo_engine/JUDGEMENT.md`](seo_engine/JUDGEMENT.md)) |
 
+## Example output (one complete loop)
+
+**Architecture decision (submission artifact):** runtime drafts and SQLite live under `seo_engine/output/` and `data/` (gitignored so secrets and huge DBs stay local). To satisfy “show it working” without cloning private data, **[`examples/`](examples/)** holds a **fixed sample** of the same shapes: a **generated article** ([`examples/article-sample.md`](examples/article-sample.md)), **evaluation** scores + findings ([`examples/evaluation-sample.json`](examples/evaluation-sample.json)), and **learning store** merge ([`examples/learning-store-sample.json`](examples/learning-store-sample.json)). See [`examples/README.md`](examples/README.md) for how to reproduce on your machine.
+
 ## Publish destinations
 
 **Implemented:** **`LOCAL_MARKDOWN`** only—drafts are written under the configured output directory (`stage3_publish`).  

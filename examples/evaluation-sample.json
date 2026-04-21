@@ -1,0 +1,22 @@
+{
+  "_comment": "Shape matches GET /api/clients/{id}/evaluations and the evaluations table after stage4_evaluate.",
+  "id": 12,
+  "article_id": 8,
+  "loop_id": "8db985b5-8957-4270-9d27-f6aee8be6ddc",
+  "overall_score": 72.5,
+  "semantic_coverage": 20.0,
+  "keyword_usage": 19.0,
+  "readability": 15.5,
+  "structural_completeness": 16.0,
+  "internal_linking": 6.0,
+  "findings": [
+    "Strong topical coverage of AI receptionists for UK SMEs with practical sections on benefits and implementation.",
+    "Primary phrase appears in title, opening, and multiple H2 sections; supporting phrases used naturally.",
+    "Structure includes clear introduction, themed H2 blocks, and a conclusion with CTA.",
+    "Consider adding one more internal [LINK: slug] placeholder to strengthen internal linking score."
+  ],
+  "flags": [],
+  "evaluated_at": "2026-04-20T14:32:01Z",
+  "slug": "ai-receptionist-automated-phone-systems-uk-business",
+  "title": "AI Receptionist: How Automated Phone Systems Transform UK Business Customer Service"
+}
