@@ -1,0 +1,15 @@
+client_id: talkweb
+domain: talkweb.io
+topic_cluster:
+  - AI receptionist
+  - WhatsApp automation for business
+  - website chat and conversion
+  - voice AI for SMEs
+target_audience: UK SMEs, council digital teams, housing associations looking to improve website accessibility and response time
+tone: authoritative but plain-spoken, practical, no jargon, focused on business outcomes
+publish_destination: LOCAL_MARKDOWN
+output_dir: ./output/talkweb
+min_word_count: 600
+max_word_count: 4000
+target_word_count: 1200
+keyword_data_source: MOCK
