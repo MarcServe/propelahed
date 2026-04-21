@@ -1015,16 +1015,82 @@ table.article-table {
   font-size: 0.86rem;
 }
 
-.article-md-preview__body {
-  max-height: min(70vh, 44rem);
-  overflow: auto;
-  padding: 1rem 1.1rem;
+/* Single scrollable panel: YAML meta + rendered body (see .article-md-preview-sheet) */
+.article-md-preview-sheet {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  max-height: min(70vh, 44rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.article-md-preview-sheet .article-md-frontmatter {
+  margin: 0;
+  padding: 0.75rem 0.95rem;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
+}
+
+/* YAML front matter (parsed from --- blocks), not run through Markdown */
+.article-md-frontmatter {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.article-md-frontmatter__row {
+  margin-bottom: 0.85rem;
+}
+
+.article-md-frontmatter__row:last-child {
+  margin-bottom: 0;
+}
+
+.article-md-frontmatter__key {
+  display: block;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.3rem;
+}
+
+.article-md-frontmatter__value {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+  padding-left: 0.15rem;
+}
+
+.article-md-frontmatter__kw {
+  margin: 0.25rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.article-md-frontmatter__kw li {
+  margin: 0.15rem 0;
+}
+
+.article-md-frontmatter__json {
+  margin: 0;
+  font-size: 0.8rem;
+  overflow: auto;
+  max-height: 8rem;
+}
+
+.article-md-preview-sheet .article-md-preview__body {
+  margin: 0;
+  max-height: none;
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  padding: 1rem 1.1rem;
   background: var(--surface-1);
   font-size: 0.92rem;
   line-height: 1.55;
   color: var(--text);
+}
+
+.article-md-preview__body--main {
+  margin-top: 0;
 }
 
 .article-md-preview__body h1,
