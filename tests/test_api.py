@@ -113,6 +113,13 @@ def test_article_download_unknown_article_returns_404() -> None:
     assert r.status_code == 404
 
 
+def test_article_content_unknown_article_returns_404() -> None:
+    app = create_app()
+    client = TestClient(app)
+    r = client.get("/api/clients/talkweb/articles/999999999/content")
+    assert r.status_code == 404
+
+
 def test_delete_loop_run_missing_returns_404() -> None:
     app = create_app()
     client = TestClient(app)

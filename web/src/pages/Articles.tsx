@@ -7,6 +7,7 @@ import { EMPTY_LABEL, formatWhen, shortPath } from "../formatDisplay";
 import type { TimeRangeId } from "../timeRange";
 import { cutoffForRange, filterRowsByTime } from "../timeRange";
 import { useListMarks } from "../useListMarks";
+import ArticleDraftPreviewCollapsible from "../components/ArticleMarkdownPreview";
 
 type ArticleRow = {
   id?: number;
@@ -70,7 +71,7 @@ export default function Articles({ clientId }: { clientId: string }) {
       <h1>Published articles</h1>
       <p className="prose-lead">
         Every row is one article the system finished and saved (usually as a Markdown draft on this computer).{" "}
-        <strong>Click a row</strong> to expand and see paths, supporting phrases, and run details.
+        <strong>Click a row</strong> to expand and see paths, supporting phrases, a rendered draft preview, and download.
       </p>
 
       <PageTabs
@@ -252,10 +253,20 @@ export default function Articles({ clientId }: { clientId: string }) {
                                 </dd>
                               </>
                             ) : null}
-                            {r.publish_path && r.id != null ? (
-                              <>
-                                <dt>Download</dt>
-                                <dd>
+                          </dl>
+                          {r.publish_path && Number.isFinite(id) ? (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              onKeyDown={(e) => e.stopPropagation()}
+                              role="presentation"
+                            >
+                              <ArticleDraftPreviewCollapsible clientId={clientId} articleId={id} />
+                            </div>
+                          ) : null}
+                          {r.publish_path && r.id != null ? (
+                            <dl className="article-table__detail-dl" style={{ marginTop: "0.75rem" }}>
+                              <dt>Download</dt>
+                              <dd>
                                   <a
                                     className="button secondary"
                                     href={`/api/clients/${encodeURIComponent(clientId)}/articles/${String(r.id)}/download`}
@@ -269,9 +280,8 @@ export default function Articles({ clientId }: { clientId: string }) {
                                     Saves the Markdown file to your browser’s usual Downloads folder.
                                   </span>
                                 </dd>
-                              </>
-                            ) : null}
-                          </dl>
+                            </dl>
+                          ) : null}
                         </div>
                       </td>
                     </tr>
@@ -299,8 +309,8 @@ export default function Articles({ clientId }: { clientId: string }) {
           <dd>When the draft was written to disk or otherwise recorded for this workspace.</dd>
           <dt>Draft file</dt>
           <dd>
-            File name only in the row. Expand a row for the full path and use <strong>Download .md</strong> to save
-            a copy through your browser.
+            File name only in the row. Expand a row for the full path, a <strong>Draft preview</strong> of the Markdown,
+            and <strong>Download .md</strong> to save a copy through your browser.
           </dd>
         </dl>
       </div>

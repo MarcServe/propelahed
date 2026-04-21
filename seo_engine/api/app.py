@@ -123,6 +123,9 @@ def _config_path_for_client(client_id: str) -> Path:
     return p
 
 
+_MAX_ARTICLE_PREVIEW_BYTES = 5_000_000  # ~5 MB cap for in-browser preview
+
+
 def _safe_publish_path(publish_path: str) -> Path:
     """Resolve a draft path from the DB; must live under the repo root on disk."""
     raw = Path(publish_path.strip())
@@ -456,6 +459,30 @@ def create_app() -> FastAPI:
             if not store.delete_research_snapshot(client_id, snapshot_id):
                 raise HTTPException(status_code=404, detail="Snapshot not found")
             return {"status": "ok"}
+        finally:
+            store.close()
+
+    @app.get("/api/clients/{client_id}/articles/{article_id}/content")
+    def get_article_markdown_content(client_id: str, article_id: int) -> dict[str, str]:
+        """Return draft Markdown as JSON for UI preview (same file as download)."""
+        _config_path_for_client(client_id)
+        store = _open_store(client_id)
+        try:
+            row = store.get_article(client_id, article_id)
+            if not row:
+                raise HTTPException(status_code=404, detail="Article not found")
+            pp = row.get("publish_path")
+            if not pp:
+                raise HTTPException(status_code=404, detail="No draft file path stored for this article")
+            path = _safe_publish_path(str(pp))
+            data = path.read_bytes()
+            if len(data) > _MAX_ARTICLE_PREVIEW_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail="Article file is too large to preview; use Download .md instead.",
+                )
+            text = data.decode("utf-8", errors="replace")
+            return {"markdown": text}
         finally:
             store.close()
 
