@@ -154,7 +154,7 @@ def test_loop_runs_round_trip(tmp_db: Path) -> None:
             error_message="Quality gate failed",
             gate_failures=["minimum_word_count"],
         )
-        store.log_article(
+        aid = store.log_article(
             {
                 "loop_id": "abc-123",
                 "client_id": "c1",
@@ -170,6 +170,20 @@ def test_loop_runs_round_trip(tmp_db: Path) -> None:
                 "underperforming": False,
             }
         )
+        store.log_evaluation(
+            {
+                "article_id": aid,
+                "loop_id": "abc-123",
+                "overall_score": 71.5,
+                "semantic_coverage": 20.0,
+                "keyword_usage": 20.0,
+                "readability": 10.0,
+                "structural_completeness": 15.0,
+                "internal_linking": 6.0,
+                "findings": [],
+                "flags": [],
+            }
+        )
         rows = store.list_loop_runs("c1", limit=10)
         assert len(rows) == 2
         assert rows[0]["loop_id"] == "def-456"
@@ -180,5 +194,6 @@ def test_loop_runs_round_trip(tmp_db: Path) -> None:
         assert rows[1]["article_title"] == "Why Acme widgets win"
         assert rows[1]["article_slug"] == "acme-widget"
         assert rows[1]["article_primary_keyword"] == "acme widget review"
+        assert rows[1]["evaluation_overall_score"] == 71.5
     finally:
         store.close()

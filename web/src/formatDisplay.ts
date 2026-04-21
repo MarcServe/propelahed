@@ -3,6 +3,14 @@
 /** Shown when a table cell or score has no value yet. */
 export const EMPTY_LABEL = "Not set";
 
+/** Learning store lines sometimes used em dashes; show a plain sentence break instead. */
+export function humanizeLearningCopy(text: string): string {
+  return text
+    .replace(/\s*—\s*/g, ". ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 export function friendlyRunStatus(status: string): string {
   switch (status) {
     case "succeeded":

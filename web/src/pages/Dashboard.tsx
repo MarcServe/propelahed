@@ -29,6 +29,8 @@ type LoopRun = {
   article_title?: string | null;
   article_slug?: string | null;
   article_primary_keyword?: string | null;
+  /** From evaluations row for that article, when evaluate stage ran. */
+  evaluation_overall_score?: number | null;
 };
 
 type ArticleRow = { title?: string; loop_id?: string };
@@ -201,8 +203,9 @@ export default function Dashboard({ clientId }: { clientId: string }) {
               Run history
             </h2>
             <p className="prose-muted" style={{ marginBottom: 0 }}>
-              Newest runs first. <strong>Details</strong> shows why a run stopped (error text or draft check summary). Headline,
-              topic, slug, and file name appear once a draft was saved for that run.
+              Newest runs first. <strong>Details</strong> shows error text, gate issues for failed runs, or{" "}
+              <strong>evaluator overall score</strong> when a run completed and was scored. Headline, topic, slug, and file
+              name appear once a draft was saved for that run.
             </p>
           </div>
           <TimeRangeFilter

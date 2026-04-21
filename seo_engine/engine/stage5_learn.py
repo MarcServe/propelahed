@@ -64,23 +64,23 @@ def _derive_do_not_repeat(ev: EvaluationResult, brief: ContentBrief) -> list[str
 
     if ev.semantic_coverage < 18:
         out.append(
-            "Avoid thin topical coverage vs the brief—last draft scored low on topic depth; add substantiation and examples."
+            "Avoid thin topical coverage vs the brief. Last draft scored low on topic depth; add substantiation and examples."
         )
     if ev.keyword_usage < 17:
         out.append(
-            "Avoid burying the primary phrase—last draft underused title, first 100 words, H2, or natural keyword density."
+            "Avoid burying the primary phrase. Last draft underused title, first 100 words, H2, or natural keyword density."
         )
     if ev.readability < 15:
         out.append(
-            "Avoid readability outside the ideal band—last draft needed plainer wording or shorter paragraphs."
+            "Avoid readability outside the ideal band. Last draft needed plainer wording or shorter paragraphs."
         )
     if ev.structural_completeness < 15:
         out.append(
-            "Avoid weak structure—last draft needed clearer intro, more H2 sections, or a stronger conclusion/CTA."
+            "Avoid weak structure. Last draft needed clearer intro, more H2 sections, or a stronger conclusion/CTA."
         )
     if ev.internal_linking < 7:
         out.append(
-            "Avoid shipping without enough internal links—last draft needed more relevant [LINK: slug] placements."
+            "Avoid shipping without enough internal links. Last draft needed more relevant [LINK: slug] placements."
         )
 
     if ev.overall_score < 60:
@@ -134,7 +134,7 @@ def run_learn(state: State, store: KnowledgeStore) -> None:
     if ev.readability < 15:
         patterns.append(
             "Writing target for similar drafts: favour plain UK business English, short paragraphs, and concrete "
-            "examples—previous readability subscore was below the ideal band."
+            "examples. Previous readability subscore was below the ideal band."
         )
 
     next_topics = _derive_next_priority_topics(ev, brief)

@@ -491,7 +491,13 @@ class KnowledgeStore:
             SELECT r.id, r.client_id, r.loop_id, r.status, r.stage_reached, r.error_message,
                    r.publish_path, r.gate_failures, r.finished_at,
                    a.title AS article_title, a.slug AS article_slug,
-                   a.primary_keyword AS article_primary_keyword
+                   a.primary_keyword AS article_primary_keyword,
+                   (
+                       SELECT e.overall_score FROM evaluations e
+                       WHERE e.article_id = a.id
+                       ORDER BY e.id DESC
+                       LIMIT 1
+                   ) AS evaluation_overall_score
             FROM loop_runs r
             LEFT JOIN articles a ON a.client_id = r.client_id AND a.loop_id = r.loop_id
                 AND a.id = (
