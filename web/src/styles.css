@@ -382,6 +382,18 @@ textarea.code {
   box-shadow: 0 -6px 20px rgba(15, 17, 22, 0.05);
 }
 
+/* Reserve space so status lines don’t push the form when they appear (reduces “bounce” on Save). */
+.config-status-region {
+  min-height: 3.25rem;
+  margin-bottom: 0.35rem;
+}
+
+/* Avoid the global button :active nudge on save bars (sticky bar felt like it “bounced”). */
+.config-save-bar button:active:not(:disabled),
+.config-save-bar--sticky button:active:not(:disabled) {
+  transform: none;
+}
+
 button {
   cursor: pointer;
   border-radius: var(--radius-sm);

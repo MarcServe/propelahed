@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import FormField from "../components/FormField";
 import PageTabs, { tabPanelAttrs } from "../components/PageTabs";
 import {
@@ -38,6 +38,82 @@ const TABS: { id: TabId; label: string; hint: string }[] = [
   { id: "raw", label: "Raw YAML", hint: "For technical users" },
 ];
 
+/** v1: sessionStorage JSON of form only. v2: localStorage full workspace draft. */
+const DRAFT_V1_PREFIX = "propelhed-config-draft-v1:";
+const DRAFT_V2_PREFIX = "propelhed-config-draft-v2:";
+
+type WorkspaceConfigDraftV2 = {
+  v: 2;
+  client_id: string;
+  form: WorkspaceConfigForm;
+  rawYaml: string;
+  /** True if Raw YAML was edited independently (not only synced from form fields). */
+  rawYamlDirty: boolean;
+  tab: TabId;
+  serperRemoveRequested: boolean;
+};
+
+function draftStorageKeyV2(workspaceId: string) {
+  return `${DRAFT_V2_PREFIX}${workspaceId}`;
+}
+
+function readWorkspaceDraft(workspaceId: string): WorkspaceConfigDraftV2 | null {
+  try {
+    const v2 = localStorage.getItem(draftStorageKeyV2(workspaceId));
+    if (v2) {
+      const o = JSON.parse(v2) as Partial<WorkspaceConfigDraftV2>;
+      if (o.v === 2 && o.client_id === workspaceId && o.form && typeof o.form === "object") {
+        return {
+          v: 2,
+          client_id: workspaceId,
+          form: { ...o.form, serper_api_key: "", client_id: workspaceId },
+          rawYaml: typeof o.rawYaml === "string" ? o.rawYaml : "",
+          rawYamlDirty: Boolean(o.rawYamlDirty),
+          tab: (TABS.some((t) => t.id === o.tab) ? o.tab : "basics") as TabId,
+          serperRemoveRequested: Boolean(o.serperRemoveRequested),
+        };
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const legacy = sessionStorage.getItem(`${DRAFT_V1_PREFIX}${workspaceId}`);
+    if (!legacy) return null;
+    const form = JSON.parse(legacy) as Partial<WorkspaceConfigForm>;
+    if (form.client_id !== workspaceId) return null;
+    return {
+      v: 2,
+      client_id: workspaceId,
+      form: { ...EMPTY_FORM, ...form, serper_api_key: "", client_id: workspaceId },
+      rawYaml: "",
+      rawYamlDirty: false,
+      tab: "basics",
+      serperRemoveRequested: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearWorkspaceDraft(workspaceId: string) {
+  try {
+    localStorage.removeItem(draftStorageKeyV2(workspaceId));
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.removeItem(`${DRAFT_V1_PREFIX}${workspaceId}`);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Avoid persisting while switching workspace in the toolbar before the new config has loaded. */
+function canPersistDraftForWorkspace(selectedClientId: string, form: WorkspaceConfigForm): boolean {
+  return form.client_id.trim() === selectedClientId.trim();
+}
+
 export default function ConfigEditor({ clientId }: { clientId: string }) {
   const baseId = useId();
   const [tab, setTab] = useState<TabId>("basics");
@@ -50,8 +126,25 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
   /** Last Serper key loaded from disk / saved (field is often left blank to mean “keep”). */
   const [storedSerperKey, setStoredSerperKey] = useState("");
   const [serperRemoveRequested, setSerperRemoveRequested] = useState(false);
+  /** True when Raw YAML textarea was edited (vs synced from form / server). */
+  const [rawYamlDirty, setRawYamlDirty] = useState(false);
+  /** True after load finishes (or fails); avoids overwriting session draft before the server form is applied. */
+  const [hydrated, setHydrated] = useState(false);
   /** Read on save: browsers/password managers sometimes fill the DOM without firing onChange. */
   const serperInputRef = useRef<HTMLInputElement>(null);
+  const prevTabRef = useRef<TabId | null>(null);
+  /** After Save, restore scroll position once layout updates (avoids jump when status line appears). */
+  const scrollRestoreAfterSaveRef = useRef<number | null>(null);
+  /** Latest settings snapshot for synchronous flush (debounce cleanup / unmount). */
+  const draftLiveRef = useRef<{
+    clientId: string;
+    hydrated: boolean;
+    form: WorkspaceConfigForm;
+    rawYaml: string;
+    rawYamlDirty: boolean;
+    tab: TabId;
+    serperRemoveRequested: boolean;
+  } | null>(null);
 
   const patch = useCallback((partial: Partial<WorkspaceConfigForm>) => {
     setForm((f) => ({ ...f, ...partial }));
@@ -68,39 +161,151 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
     [form, storedSerperKey, serperRemoveRequested],
   );
 
+  draftLiveRef.current = {
+    clientId,
+    hydrated,
+    form,
+    rawYaml,
+    rawYamlDirty,
+    tab,
+    serperRemoveRequested,
+  };
+
   useEffect(() => {
+    const ac = new AbortController();
     setMsg(null);
     setErr(null);
     setLoadError(null);
-    fetch(`/api/clients/${encodeURIComponent(clientId)}/config`)
-      .then((r) => r.json())
-      .then((d: { yaml?: string }) => {
+    setHydrated(false);
+
+    (async () => {
+      try {
+        const r = await fetch(`/api/clients/${encodeURIComponent(clientId)}/config`, {
+          signal: ac.signal,
+        });
+        if (ac.signal.aborted) return;
+        const d = (await r.json()) as { yaml?: string };
+        if (ac.signal.aborted) return;
         const text = d.yaml ?? "";
-        setRawYaml(text);
         try {
           const parsed = parseYamlToForm(text);
           setStoredSerperKey(parsed.serper_api_key);
-          setSerperRemoveRequested(false);
-          setForm({ ...parsed, serper_api_key: "" });
+          const base = { ...parsed, serper_api_key: "" };
+          const draft = readWorkspaceDraft(clientId);
+          if (draft) {
+            const merged = { ...base, ...draft.form, serper_api_key: "", client_id: clientId };
+            setForm(merged);
+            setSerperRemoveRequested(draft.serperRemoveRequested);
+            setTab(draft.tab);
+            if (draft.rawYamlDirty) {
+              setRawYaml(draft.rawYaml);
+              setRawYamlDirty(true);
+            } else {
+              setRawYamlDirty(false);
+              try {
+                const mergedForYaml: WorkspaceConfigForm = {
+                  ...merged,
+                  serper_api_key: resolveSerperForSave(merged.serper_api_key, {
+                    storedKey: parsed.serper_api_key,
+                    removeRequested: draft.serperRemoveRequested,
+                  }),
+                };
+                setRawYaml(formToYamlString(mergedForYaml));
+              } catch {
+                setRawYaml(text);
+              }
+            }
+          } else {
+            setForm(base);
+            setSerperRemoveRequested(false);
+            setRawYaml(text);
+            setRawYamlDirty(false);
+          }
         } catch (e) {
           setLoadError(e instanceof Error ? e.message : "Could not read settings file.");
-          setForm({ ...EMPTY_FORM, client_id: clientId });
+          const base = { ...EMPTY_FORM, client_id: clientId };
+          const draft = readWorkspaceDraft(clientId);
+          if (draft) {
+            const merged = { ...base, ...draft.form, serper_api_key: "", client_id: clientId };
+            setForm(merged);
+            setSerperRemoveRequested(draft.serperRemoveRequested);
+            setTab(draft.tab);
+            if (draft.rawYamlDirty) {
+              setRawYaml(draft.rawYaml);
+              setRawYamlDirty(true);
+            } else {
+              setRawYaml(text);
+              setRawYamlDirty(false);
+            }
+          } else {
+            setForm(base);
+            setRawYaml(text);
+            setSerperRemoveRequested(false);
+            setRawYamlDirty(false);
+          }
           setStoredSerperKey("");
-          setSerperRemoveRequested(false);
         }
-      })
-      .catch(() => setErr("Failed to load settings."));
+      } catch (e: unknown) {
+        if ((e as { name?: string })?.name === "AbortError") return;
+        setErr("Failed to load settings.");
+      } finally {
+        if (!ac.signal.aborted) setHydrated(true);
+      }
+    })();
+
+    return () => ac.abort();
   }, [clientId]);
 
   useEffect(() => {
-    if (tab === "raw") {
+    if (!hydrated) return;
+    const flush = () => {
+      const r = draftLiveRef.current;
+      if (!r?.hydrated || !canPersistDraftForWorkspace(r.clientId, r.form)) return;
       try {
-        setRawYaml(formToYamlString(formMergedForYaml));
+        const payload: WorkspaceConfigDraftV2 = {
+          v: 2,
+          client_id: r.clientId,
+          form: { ...r.form, serper_api_key: "" },
+          rawYaml: r.rawYaml,
+          rawYamlDirty: r.rawYamlDirty,
+          tab: r.tab,
+          serperRemoveRequested: r.serperRemoveRequested,
+        };
+        localStorage.setItem(draftStorageKeyV2(r.clientId), JSON.stringify(payload));
       } catch {
-        /* keep previous rawYaml */
+        /* quota / private mode */
       }
+    };
+    const t = window.setTimeout(flush, 200);
+    return () => {
+      window.clearTimeout(t);
+      flush();
+    };
+  }, [form, rawYaml, rawYamlDirty, tab, serperRemoveRequested, clientId, hydrated]);
+
+  useLayoutEffect(() => {
+    const y = scrollRestoreAfterSaveRef.current;
+    if (y === null) return;
+    scrollRestoreAfterSaveRef.current = null;
+    window.scrollTo(0, y);
+  }, [msg, err]);
+
+  /** When entering Raw YAML from another tab, show the YAML for current form fields unless Raw was edited. */
+  useEffect(() => {
+    if (tab === "raw") {
+      const prev = prevTabRef.current;
+      prevTabRef.current = tab;
+      if (prev !== "raw" && !rawYamlDirty) {
+        try {
+          setRawYaml(formToYamlString(formMergedForYaml));
+        } catch {
+          /* keep previous rawYaml */
+        }
+      }
+    } else {
+      prevTabRef.current = tab;
     }
-  }, [tab, formMergedForYaml]);
+  }, [tab, formMergedForYaml, rawYamlDirty]);
 
   async function save() {
     if (saving) return;
@@ -124,9 +329,12 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        scrollRestoreAfterSaveRef.current = window.scrollY;
         setErr(formatSaveErrorDetail(body, res.statusText));
         return;
       }
+      scrollRestoreAfterSaveRef.current = window.scrollY;
+      clearWorkspaceDraft(clientId);
       setMsg("Settings saved. You can use “Write new article” when ready.");
       try {
         const next = parseYamlToForm(yamlText);
@@ -134,6 +342,7 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
         setSerperRemoveRequested(false);
         setForm({ ...next, serper_api_key: "" });
         setRawYaml(yamlText);
+        setRawYamlDirty(false);
       } catch {
         /* ignore */
       }
@@ -149,6 +358,7 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
       setStoredSerperKey(parsed.serper_api_key);
       setSerperRemoveRequested(false);
       setForm({ ...parsed, serper_api_key: "" });
+      setRawYamlDirty(false);
       setMsg("Loaded the YAML below into the form fields. Review each tab, then save.");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Invalid YAML.");
@@ -166,17 +376,20 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
       <h1>Workspace settings</h1>
       <p className="prose-lead">
         Set your business details, topics, audience, tone, and where drafts go. Use the tabs to move
-        through each area. Everything is saved together when you click <strong>Save settings</strong> (top or bottom of
-        this page).
+        through each area. Your edits are remembered in this browser until you save or discard them (use the same URL in
+        every browser—either <code>localhost</code> or <code>127.0.0.1</code>, not both—so drafts line up). Everything is
+        written to disk when you click <strong>Save settings</strong> (top or bottom of this page).
       </p>
-      {loadError && (
-        <p className="status bad">
-          The file could not be parsed into fields ({loadError}). You can fix it under{" "}
-          <strong>Raw YAML</strong> or ask your technical contact for help.
-        </p>
-      )}
-      {err && <p className="status bad">{err}</p>}
-      {msg && <p className="status ok">{msg}</p>}
+      <div className="config-status-region" aria-live="polite">
+        {loadError && (
+          <p className="status bad">
+            The file could not be parsed into fields ({loadError}). You can fix it under{" "}
+            <strong>Raw YAML</strong> or ask your technical contact for help.
+          </p>
+        )}
+        {err && <p className="status bad">{err}</p>}
+        {msg && <p className="status ok">{msg}</p>}
+      </div>
 
       <div className="config-save-bar row" style={{ marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
         <button type="button" onClick={() => void save()} disabled={saving} aria-busy={saving}>
@@ -599,7 +812,18 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
           <button type="button" className="secondary" onClick={applyRawYaml}>
             Load into form
           </button>
-          <button type="button" className="secondary" onClick={() => setRawYaml(formToYamlString(formMergedForYaml))}>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              try {
+                setRawYaml(formToYamlString(formMergedForYaml));
+                setRawYamlDirty(false);
+              } catch {
+                /* keep previous rawYaml */
+              }
+            }}
+          >
             Reset from form fields
           </button>
         </div>
@@ -607,7 +831,10 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
           className="code"
           style={{ minHeight: "380px" }}
           value={rawYaml}
-          onChange={(e) => setRawYaml(e.target.value)}
+          onChange={(e) => {
+            setRawYaml(e.target.value);
+            setRawYamlDirty(true);
+          }}
           spellCheck={false}
           aria-label="Raw YAML configuration"
         />

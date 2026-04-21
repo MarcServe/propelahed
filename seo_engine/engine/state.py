@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+
+def _coerce_str_list(v: Any) -> list[str]:
+    """YAML may store topic lists as a sequence or a single comma/newline-separated string."""
+    if v is None:
+        return []
+    if isinstance(v, list):
+        return [str(x).strip() for x in v if str(x).strip()]
+    if isinstance(v, str):
+        return [s.strip() for s in re.split(r"[\n,]+", v) if s.strip()]
+    return []
 
 
 @dataclass
@@ -66,7 +78,7 @@ class ClientConfig:
         return ClientConfig(
             client_id=str(raw["client_id"]),
             domain=str(raw["domain"]),
-            topic_cluster=list(raw["topic_cluster"]),
+            topic_cluster=_coerce_str_list(raw.get("topic_cluster")),
             target_audience=str(raw["target_audience"]),
             tone=str(raw["tone"]),
             publish_destination=str(raw["publish_destination"]),
@@ -80,7 +92,7 @@ class ClientConfig:
             keyword_data_source=str(raw.get("keyword_data_source", "MOCK")),
             serper_api_key=raw.get("serper_api_key"),
             brand_voice_notes=raw.get("brand_voice_notes"),
-            excluded_topics=list(raw.get("excluded_topics") or []),
+            excluded_topics=_coerce_str_list(raw.get("excluded_topics")),
             autopilot_enabled=bool(raw.get("autopilot_enabled", False)),
             autopilot_time=str(raw.get("autopilot_time") or "").strip(),
             public_base_url=raw.get("public_base_url"),
