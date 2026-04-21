@@ -1,22 +1,21 @@
 {
-  "_comment": "Shape matches GET /api/clients/{id}/evaluations and the evaluations table after stage4_evaluate.",
-  "id": 12,
-  "article_id": 8,
-  "loop_id": "8db985b5-8957-4270-9d27-f6aee8be6ddc",
-  "overall_score": 72.5,
-  "semantic_coverage": 20.0,
-  "keyword_usage": 19.0,
-  "readability": 15.5,
+  "_comment": "Exported by scripts/export_examples.py; shape matches GET /api/clients/{id}/evaluations.",
+  "id": 5,
+  "article_id": 5,
+  "loop_id": "a9e074d6-816a-49bf-8da7-b24a897dd00f",
+  "overall_score": 71.67,
+  "semantic_coverage": 23.0,
+  "keyword_usage": 21.5,
+  "readability": 6.17,
   "structural_completeness": 16.0,
-  "internal_linking": 6.0,
+  "internal_linking": 5.0,
   "findings": [
-    "Strong topical coverage of AI receptionists for UK SMEs with practical sections on benefits and implementation.",
-    "Primary phrase appears in title, opening, and multiple H2 sections; supporting phrases used naturally.",
-    "Structure includes clear introduction, themed H2 blocks, and a conclusion with CTA.",
-    "Consider adding one more internal [LINK: slug] placeholder to strengthen internal linking score."
+    "The article provides excellent comprehensive coverage of AI receptionist cost for the UK market. It thoroughly addresses the target topic with specific pricing ranges (\u00a350-\u00a3150 basic, \u00a3200-\u00a3500 mid-tier, \u00a3800-\u00a32,500 enterprise), covers multiple pricing models, discusses ROI calculations, and includes implementation costs and hidden expenses. The content is well-structured with clear sections covering cost breakdowns, driving factors, budget planning, and comparisons. It specifically targets UK businesses including SMEs, councils, and housing associations with relevant examples and pricing in pounds. The article would rank well for cost-related searches as it answers key questions about pricing structures, ROI, and budget considerations. Minor deduction for not including more specific provider comparisons or case studies, but overall very strong topical coverage.",
+    "Readability outside ideal band; simplify or add depth.",
+    "Add more relevant internal [LINK: slug] placeholders."
   ],
   "flags": [],
-  "evaluated_at": "2026-04-20T14:32:01Z",
-  "slug": "ai-receptionist-automated-phone-systems-uk-business",
-  "title": "AI Receptionist: How Automated Phone Systems Transform UK Business Customer Service"
+  "evaluated_at": "2026-04-21T03:49:30Z",
+  "slug": "ai-receptionist-cost-complete-uk-pricing-guide-smes-public-sector",
+  "title": "AI Receptionist Cost: Complete UK Pricing Guide for SMEs and Public Sector Organizations"
 }

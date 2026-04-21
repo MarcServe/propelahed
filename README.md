@@ -164,6 +164,15 @@ python -m pytest -q
 
 **Architecture decision (submission artifact):** runtime drafts and SQLite live under `seo_engine/output/` and `data/` (gitignored so secrets and huge DBs stay local). To satisfy “show it working” without cloning private data, **[`examples/`](examples/)** holds a **fixed sample** of the same shapes: a **generated article** ([`examples/article-sample.md`](examples/article-sample.md)), **evaluation** scores + findings ([`examples/evaluation-sample.json`](examples/evaluation-sample.json)), and **learning store** merge ([`examples/learning-store-sample.json`](examples/learning-store-sample.json)). See [`examples/README.md`](examples/README.md) for how to reproduce on your machine.
 
+**Update examples to match your latest run** (what the app shows, committed for GitHub):
+
+```bash
+export PYTHONPATH=.
+python scripts/export_examples.py --client talkweb
+```
+
+That overwrites the three sample files from `data/talkweb.db` (latest evaluation + matching `loop_id` learning row + article file path). Review diffs, then commit `examples/`.
+
 ## Publish destinations
 
 **Implemented:** **`LOCAL_MARKDOWN`** only—drafts are written under the configured output directory (`stage3_publish`).  

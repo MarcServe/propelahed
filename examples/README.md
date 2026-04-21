@@ -4,6 +4,15 @@ These files show what a **successful** run of `run_loop()` produces: a published
 
 They are **fixed samples** checked into the repo so reviewers can inspect output **without** running the engine. Your own runs write to `seo_engine/output/{client_id}/` and `data/{client_id}.db` (gitignored).
 
+**Refresh from your database** (after a successful loop) so GitHub shows the same shapes as your current app data:
+
+```bash
+export PYTHONPATH=.
+python scripts/export_examples.py --client talkweb
+```
+
+Optional: `--max-article-chars N` truncates the Markdown body (keeps YAML front matter) for very large drafts. Output files: `article-sample.md`, `evaluation-sample.json`, `learning-store-sample.json` in this folder.
+
 | File | What it is |
 |------|----------------|
 | [`article-sample.md`](article-sample.md) | Generated blog post (YAML front matter + body). Same shape as `stage3_publish` output. |
