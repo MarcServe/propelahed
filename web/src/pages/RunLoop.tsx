@@ -15,9 +15,31 @@ type RunOptions = {
   candidates: string[];
   topic_cluster: string[];
   target_word_count: number;
+  /** Set when Serper (or similar) failed and the API used MOCK-style gaps for this preview only */
+  load_warning?: string | null;
 };
 
 type RunTab = "write" | "pipeline";
+
+async function parseFetchErrorMessage(res: Response): Promise<string> {
+  try {
+    const b = (await res.json()) as { detail?: unknown };
+    if (typeof b.detail === "string") return b.detail;
+    if (Array.isArray(b.detail)) {
+      return b.detail
+        .map((item) => {
+          if (typeof item === "object" && item !== null && "msg" in item) {
+            return String((item as { msg?: unknown }).msg);
+          }
+          return typeof item === "string" ? item : JSON.stringify(item);
+        })
+        .join(" ");
+    }
+  } catch {
+    /* ignore */
+  }
+  return res.statusText || `HTTP ${res.status}`;
+}
 
 const RUN_TABS = [
   { id: "write", label: "Run", hint: "Generate one article" },
@@ -36,8 +58,11 @@ export default function RunLoop({ clientId }: { clientId: string }) {
     setOptionsErr(null);
     setRunOptions(null);
     fetch(`/api/clients/${encodeURIComponent(clientId)}/run-options`)
-      .then((r) => {
-        if (!r.ok) throw new Error(r.statusText);
+      .then(async (r) => {
+        if (!r.ok) {
+          const msg = await parseFetchErrorMessage(r);
+          throw new Error(msg);
+        }
         return r.json();
       })
       .then((d: RunOptions) =>
@@ -45,11 +70,21 @@ export default function RunLoop({ clientId }: { clientId: string }) {
           candidates: Array.isArray(d.candidates) ? d.candidates : [],
           topic_cluster: Array.isArray(d.topic_cluster) ? d.topic_cluster : [],
           target_word_count: typeof d.target_word_count === "number" ? d.target_word_count : 1200,
+          load_warning: typeof d.load_warning === "string" && d.load_warning.trim() ? d.load_warning.trim() : undefined,
         }),
       )
-      .catch(() =>
-        setOptionsErr("Could not load topic suggestions. Start Content workspace, then refresh this page."),
-      );
+      .catch((e: unknown) => {
+        const detail = e instanceof Error ? e.message : String(e);
+        const isNetwork =
+          detail === "Failed to fetch" ||
+          detail.startsWith("NetworkError") ||
+          detail.includes("Load failed");
+        setOptionsErr(
+          isNetwork
+            ? "Could not reach the API. Start the Content workspace backend (uvicorn), then refresh this page."
+            : `Could not load topic suggestions: ${detail}`,
+        );
+      });
   }, [clientId]);
 
   async function startRun() {
@@ -124,6 +159,13 @@ export default function RunLoop({ clientId }: { clientId: string }) {
           Run once
         </h2>
         {optionsErr && <p className="status bad">{optionsErr}</p>}
+        {runOptions?.load_warning && !optionsErr && (
+          <p className="status warn">
+            Keyword preview fell back to topic-cluster ideas (MOCK-style) because: {runOptions.load_warning} Fix{" "}
+            <strong>Settings → Length &amp; data</strong> or <code>SERPER_API_KEY</code> in <code>.env</code> before running;
+            otherwise research may fail the same way when you generate an article.
+          </p>
+        )}
         <p className="prose-muted" style={{ marginTop: 0, marginBottom: "1rem" }}>
           Generates <strong>one draft</strong> per click. Topic sources come from <strong>Settings → Topics &amp; voice</strong>
           , <strong>Length &amp; data</strong> (Serper/MOCK), and your research notes.

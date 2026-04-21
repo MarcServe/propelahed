@@ -47,7 +47,7 @@ Long prompts (very large learning snapshots) increase cost and latency; summaris
 
 **Optional vs not implemented in the publish path**
 
-- **Keyword source:** YAML can set `MOCK` (no external API) or **`SERPER`** for live Google-via-Serper gaps when a key is set in **Settings → Length & data** or `SERPER_API_KEY` in `.env`. This is wired for **research**; it is not a full rank-tracker product.
+- **Keyword source:** YAML can set `MOCK` (no external API) or **`SERPER`** for live Google-via-Serper gaps when a key is set in **Settings → Length & data** or `SERPER_API_KEY` in `.env`. Keys must be from **[serper.dev](https://serper.dev)**—**not** SerpApi (serpapi.com). This is wired for **research**; it is not a full rank-tracker product.
 - **Publishing:** Only **`LOCAL_MARKDOWN`** is implemented end-to-end (`stage3_publish`). **Ghost** and **webhook** destinations are validated in client YAML/UI but **raise `NotImplementedError`** if selected—drafts are not pushed to those systems in this repo.
 
 **Scheduling**

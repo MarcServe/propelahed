@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 import re
 import tempfile
 import threading
@@ -338,12 +339,21 @@ def create_app() -> FastAPI:
         cfg = ClientConfig.from_yaml(path)
         store = _open_store(client_id)
         try:
-            candidates = list_topic_candidates(cfg, store)
+            load_warning: str | None = None
+            try:
+                candidates = list_topic_candidates(cfg, store)
+            except Exception as e:
+                # Serper/network/config errors should not brick this screen; fall back to MOCK-style gaps.
+                logger.warning("run_options: keyword gap build failed for %s, using MOCK fallback: %s", client_id, e)
+                load_warning = str(e)
+                cfg_mock = replace(cfg, keyword_data_source="MOCK")
+                candidates = list_topic_candidates(cfg_mock, store)
             return {
                 "client_id": client_id,
                 "candidates": candidates,
                 "topic_cluster": cfg.topic_cluster,
                 "target_word_count": cfg.target_word_count,
+                "load_warning": load_warning,
             }
         finally:
             store.close()

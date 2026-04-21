@@ -30,10 +30,14 @@ def _serper_search_google(api_key: str, query: str, num: int = 10) -> dict[str, 
         r = client.post(SERPER_SEARCH_URL, headers=headers, json=payload)
     if r.status_code == 401:
         raise ValueError(
-            "Serper API rejected the key (401). Check serper_api_key in Settings or SERPER_API_KEY in .env."
+            "Serper (serper.dev) rejected the key (401). Use a key from https://serper.dev — not SerpApi (serpapi.com). "
+            "Set serper_api_key in Settings → Length & data or SERPER_API_KEY in .env."
         )
     if r.status_code == 403:
-        raise ValueError("Serper API denied access (403). Verify your account and remaining credits.")
+        raise ValueError(
+            "Serper (serper.dev) denied access (403). Confirm the key is from https://serper.dev (not SerpApi) and your "
+            "account/credits there."
+        )
     r.raise_for_status()
     return r.json()
 
@@ -78,8 +82,8 @@ def _fetch_serper_keyword_gaps(config: ClientConfig) -> dict[str, Any]:
     api_key = _serper_api_key(config)
     if not api_key:
         raise ValueError(
-            "Serper is selected but no API key was found. Add serper_api_key under Length & data in Settings "
-            "or set SERPER_API_KEY in your environment."
+            "Serper (serper.dev) is selected but no API key was found. Add a key from https://serper.dev under "
+            "Settings → Length & data or set SERPER_API_KEY in .env (not SerpApi / serpapi.com keys)."
         )
 
     topics = [str(t).strip() for t in (config.topic_cluster or []) if str(t).strip()]

@@ -67,6 +67,8 @@ cp .env.example .env        # add ANTHROPIC_API_KEY (and optional SERPER_API_KEY
 
 For **Serper** ([serper.dev](https://serper.dev)): set `keyword_data_source` to `SERPER` under **Settings → Length & data**, add your API key there or set `SERPER_API_KEY` in `.env`. The engine calls Google search via Serper to build related-query “gaps” from your topic cluster (up to eight searches per run configuration).
 
+**Not SerpApi:** [SerpApi](https://serpapi.com) (serpapi.com) is a different product. This repo only integrates **serper.dev** keys; using a SerpApi key will fail with 401/403.
+
 ## CLI — one full loop
 
 ```bash

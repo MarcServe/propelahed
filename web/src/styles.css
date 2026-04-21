@@ -369,6 +369,19 @@ textarea.code {
   align-items: center;
 }
 
+/* Settings page: secondary save control stays visible while scrolling long forms */
+.config-save-bar--sticky {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  padding-top: 0.75rem;
+  padding-bottom: 0.25rem;
+  margin-top: 0.5rem;
+  background: var(--page);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 20px rgba(15, 17, 22, 0.05);
+}
+
 button {
   cursor: pointer;
   border-radius: var(--radius-sm);
@@ -458,6 +471,15 @@ a.button.secondary:hover {
 .status.bad {
   color: var(--error);
   font-weight: 600;
+}
+
+.status.warn {
+  color: var(--warn);
+  font-weight: 600;
+  background: var(--warn-bg);
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(217, 119, 6, 0.35);
 }
 
 pre.json {

@@ -46,6 +46,7 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   /** Last Serper key loaded from disk / saved (field is often left blank to mean “keep”). */
   const [storedSerperKey, setStoredSerperKey] = useState("");
   const [serperRemoveRequested, setSerperRemoveRequested] = useState(false);
@@ -102,36 +103,42 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
   }, [tab, formMergedForYaml]);
 
   async function save() {
+    if (saving) return;
     setMsg(null);
     setErr(null);
-    const liveSerper = serperInputRef.current?.value ?? form.serper_api_key;
-    const mergedForYamlPut: WorkspaceConfigForm = {
-      ...form,
-      serper_api_key: resolveSerperForSave(liveSerper, {
-        storedKey: storedSerperKey,
-        removeRequested: serperRemoveRequested,
-      }),
-    };
-    const yamlText = tab === "raw" ? rawYaml : formToYamlString(mergedForYamlPut);
-    const res = await fetch(`/api/clients/${encodeURIComponent(clientId)}/config`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ yaml: yamlText }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      setErr(formatSaveErrorDetail(body, res.statusText));
-      return;
-    }
-    setMsg("Settings saved. You can use “Write new article” when ready.");
+    setSaving(true);
     try {
-      const next = parseYamlToForm(yamlText);
-      setStoredSerperKey(next.serper_api_key);
-      setSerperRemoveRequested(false);
-      setForm({ ...next, serper_api_key: "" });
-      setRawYaml(yamlText);
-    } catch {
-      /* ignore */
+      const liveSerper = serperInputRef.current?.value ?? form.serper_api_key;
+      const mergedForYamlPut: WorkspaceConfigForm = {
+        ...form,
+        serper_api_key: resolveSerperForSave(liveSerper, {
+          storedKey: storedSerperKey,
+          removeRequested: serperRemoveRequested,
+        }),
+      };
+      const yamlText = tab === "raw" ? rawYaml : formToYamlString(mergedForYamlPut);
+      const res = await fetch(`/api/clients/${encodeURIComponent(clientId)}/config`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ yaml: yamlText }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setErr(formatSaveErrorDetail(body, res.statusText));
+        return;
+      }
+      setMsg("Settings saved. You can use “Write new article” when ready.");
+      try {
+        const next = parseYamlToForm(yamlText);
+        setStoredSerperKey(next.serper_api_key);
+        setSerperRemoveRequested(false);
+        setForm({ ...next, serper_api_key: "" });
+        setRawYaml(yamlText);
+      } catch {
+        /* ignore */
+      }
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -159,7 +166,8 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
       <h1>Workspace settings</h1>
       <p className="prose-lead">
         Set your business details, topics, audience, tone, and where drafts go. Use the tabs to move
-        through each area. Everything is saved together when you click <strong>Save settings</strong>.
+        through each area. Everything is saved together when you click <strong>Save settings</strong> (top or bottom of
+        this page).
       </p>
       {loadError && (
         <p className="status bad">
@@ -170,10 +178,13 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
       {err && <p className="status bad">{err}</p>}
       {msg && <p className="status ok">{msg}</p>}
 
-      <div className="row" style={{ marginBottom: "1rem", alignItems: "stretch" }}>
-        <button type="button" onClick={() => void save()}>
-          Save settings
+      <div className="config-save-bar row" style={{ marginBottom: "1rem", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+        <button type="button" onClick={() => void save()} disabled={saving} aria-busy={saving}>
+          {saving ? "Saving…" : "Save settings"}
         </button>
+        <span className="prose-muted" style={{ fontSize: "0.9rem" }}>
+          Persists to <code>seo_engine/config/{clientId}.yaml</code>
+        </span>
       </div>
 
       <PageTabs
@@ -457,14 +468,15 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
           </FormField>
         </div>
         <p className="prose-muted" style={{ marginBottom: "0.75rem", maxWidth: "52rem" }}>
-          <strong>Multi-client / agency:</strong> each workspace has its own settings file in your project folder. Choose Serper
-          below and paste that client&apos;s key so keyword research is billed per business. Leave the key blank to use the
-          single <code>SERPER_API_KEY</code> from the project <code>.env</code> for every workspace instead.
+          <strong>Multi-client / agency:</strong> each workspace has its own settings file in your project folder. Choose{" "}
+          <strong>Serper</strong> below and paste that client&apos;s key so keyword research is billed per business. Leave the
+          key blank to use the single <code>SERPER_API_KEY</code> from the project <code>.env</code> for every workspace
+          instead.
         </p>
         <FormField
           id={`${baseId}-keyword_data_source`}
           label="Keyword data source"
-          hint="MOCK builds sample gaps from your topic list only. Serper calls the live Google Search API via Serper (you need at least one topic under Topics & voice)."
+          hint="MOCK builds sample gaps from your topic list only. Serper (serper.dev) calls Google Search via that service—you need at least one topic under Topics & voice."
         >
           <select
             id={`${baseId}-keyword_data_source`}
@@ -477,13 +489,13 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
             aria-label="Keyword data source"
           >
             <option value="MOCK">MOCK (sample keyword ideas, no external API)</option>
-            <option value="SERPER">Serper (live search data, needs API key)</option>
+            <option value="SERPER">Serper at serper.dev (live search; needs a serper.dev API key)</option>
           </select>
         </FormField>
         <FormField
           id={`${baseId}-serper_api_key`}
-          label="Serper API key for this workspace"
-          hint="The field is left blank on load when a key is already saved (so it is not shown on screen). Type only when adding or replacing. Saving always keeps the stored key unless you replace it or click Remove."
+          label="Serper API key (serper.dev)"
+          hint="Paste the key from your serper.dev dashboard—not SerpApi. The field is left blank on load when a key is already saved. Type only when adding or replacing; Save keeps the stored key unless you replace it or click Remove."
         >
           {storedSerperKey && !serperRemoveRequested ? (
             <p className="status ok" style={{ marginBottom: "0.5rem", fontSize: "0.9rem" }}>
@@ -524,7 +536,7 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
                 ? "Replace with a new key"
                 : storedSerperKey
                   ? "Optional: new key (leave empty to keep saved)"
-                  : "Paste client Serper key, or rely on .env"
+                  : "serper.dev key, or rely on SERPER_API_KEY in .env"
             }
           />
           <div className="row" style={{ marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -569,6 +581,18 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
           spellCheck={false}
           aria-label="Raw YAML configuration"
         />
+      </div>
+
+      <div
+        className="config-save-bar config-save-bar--sticky row"
+        style={{ marginTop: "1.5rem", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}
+      >
+        <button type="button" onClick={() => void save()} disabled={saving} aria-busy={saving}>
+          {saving ? "Saving…" : "Save settings"}
+        </button>
+        <span className="prose-muted" style={{ fontSize: "0.9rem" }}>
+          Invalid settings are rejected by the server; fix any red error above and try again.
+        </span>
       </div>
 
       <p className="prose-muted" style={{ marginTop: "1rem" }}>
