@@ -97,8 +97,9 @@ export function asStringArray(v: unknown): string[] {
 const NEW_FROM_ARTICLE_PREFIX = "New from last article";
 
 /**
- * Keyword registry merges oldest entries first and appends "New from last article …" blocks at the end.
- * A naive slice from the start hides the latest block — show the tail block first, then fill from the head.
+ * Keyword registry stores older flat keywords first and appends "New from last article …" + ▸ lines at the end.
+ * Within a sample limit: show a prefix of older keywords, then the full latest block so the header reads as a
+ * separator between prior registry entries and what this run added (tail is never truncated to zero when present).
  */
 export function keywordRegistryForDisplay(lines: string[], limit: number): string[] {
   if (!lines.length || limit <= 0) return [];
@@ -113,12 +114,18 @@ export function keywordRegistryForDisplay(lines: string[], limit: number): strin
   if (lastHeader < 0) {
     return items.slice(0, limit);
   }
+  const head = items.slice(0, lastHeader);
   const tail = items.slice(lastHeader);
   if (tail.length >= limit) {
     return tail.slice(0, limit);
   }
   const headBudget = limit - tail.length;
-  return [...tail, ...items.slice(0, lastHeader).slice(0, headBudget)];
+  return [...head.slice(0, headBudget), ...tail];
+}
+
+/** Backend uses ▸ sub-bullets inside list rows; strip when rendering inside a real <ul> to avoid double bullets. */
+export function stripLeadingSubBullet(text: string): string {
+  return text.replace(/^\s*▸\s+/, "");
 }
 
 export function scoreOutOf(n: unknown, max: number): string {

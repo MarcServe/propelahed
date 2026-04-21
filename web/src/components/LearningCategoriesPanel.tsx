@@ -1,7 +1,13 @@
 import { useId, useState, type ReactNode } from "react";
 import BulletSection from "./BulletSection";
 import PageTabs, { tabPanelAttrs } from "./PageTabs";
-import { asStringArray, formatWhen, humanizeLearningCopy, keywordRegistryForDisplay } from "../formatDisplay";
+import {
+  asStringArray,
+  formatWhen,
+  humanizeLearningCopy,
+  keywordRegistryForDisplay,
+  stripLeadingSubBullet,
+} from "../formatDisplay";
 
 export type LearningSubTab = "topics" | "avoid" | "quality" | "keywords" | "all";
 
@@ -43,7 +49,7 @@ export default function LearningCategoriesPanel({
   const keywords = keywordRegistryForDisplay(
     asStringArray(snapshot.keyword_registry),
     keywordSampleLimit,
-  ).map(humanizeLearningCopy);
+  ).map((s) => humanizeLearningCopy(stripLeadingSubBullet(s)));
 
   const empty =
     variant === "home"
