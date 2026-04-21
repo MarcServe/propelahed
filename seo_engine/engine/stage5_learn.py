@@ -102,6 +102,41 @@ def _derive_do_not_repeat(ev: EvaluationResult, brief: ContentBrief) -> list[str
     return deduped[:12]
 
 
+def _annotate_new_lines(
+    raw_lines: list[str],
+    prev_merged: list[str] | None,
+    article_title: str,
+    *,
+    max_new_bullets: int | None = None,
+) -> list[str]:
+    """
+    If there are new lines vs the previous learning snapshot, group them under a header so the UI
+    shows what was added from this article. Otherwise return the full raw list (merge dedupes).
+
+    Uses ▸ so humanizeLearningCopy (which collapses runs of spaces) does not flatten sub-bullets.
+    """
+    prev = list(prev_merged or [])
+    prev_norm = {p.strip().lower() for p in prev if p.strip()}
+    new_only = [p for p in raw_lines if p.strip() and p.strip().lower() not in prev_norm]
+    if max_new_bullets is not None and len(new_only) > max_new_bullets:
+        new_only = new_only[: max_new_bullets]
+    if new_only:
+        title_short = ((article_title or "").strip() or "Untitled")[:160]
+        out: list[str] = [f'New from last article («{title_short}»):']
+        out.extend(f"▸ {line}" for line in new_only)
+        return out
+    return list(raw_lines)
+
+
+def _annotate_new_quality_patterns(
+    raw_patterns: list[str],
+    prev_quality_patterns: list[str] | None,
+    article_title: str,
+) -> list[str]:
+    """Backward-compatible name for tests / call sites."""
+    return _annotate_new_lines(raw_patterns, prev_quality_patterns, article_title)
+
+
 def run_learn(state: State, store: KnowledgeStore) -> None:
     state.stage_reached = 5
     if not state.evaluation or not state.post or not state.brief:
@@ -112,6 +147,12 @@ def run_learn(state: State, store: KnowledgeStore) -> None:
     post = state.post
     brief = state.brief
     cfg = state.config
+
+    prev_learning = store.get_learning_state(cfg.client_id)
+    prev_quality = list((prev_learning or {}).get("quality_patterns") or []) if prev_learning else []
+    prev_priorities = list((prev_learning or {}).get("priority_topics") or []) if prev_learning else []
+    prev_do_not = list((prev_learning or {}).get("do_not_repeat") or []) if prev_learning else []
+    prev_keywords = list((prev_learning or {}).get("keyword_registry") or []) if prev_learning else []
 
     # Text findings from the evaluator, plus structured scores and gate soft warnings for "What we learned"
     # and for merge into quality_patterns (visible in the UI and in research/generate learning snapshots).
@@ -137,16 +178,31 @@ def run_learn(state: State, store: KnowledgeStore) -> None:
             "examples. Previous readability subscore was below the ideal band."
         )
 
+    patterns = _annotate_new_lines(patterns, prev_quality, post.title)
+
     next_topics = _derive_next_priority_topics(ev, brief)
+    next_topics = _annotate_new_lines(next_topics, prev_priorities, post.title)
+
     do_not = _derive_do_not_repeat(ev, brief)
+    do_not = _annotate_new_lines(do_not, prev_do_not, post.title)
+
+    kw_parts = {
+        *(str(k).strip() for k in (post.keywords_used or []) if str(k).strip()),
+        *(str(k).strip() for k in brief.secondary_keywords if str(k).strip()),
+    }
+    tk = str(brief.target_keyword or "").strip()
+    if tk:
+        kw_parts.add(tk)
+    kw_raw = sorted(kw_parts)
+    keywords_logged = _annotate_new_lines(kw_raw, prev_keywords, post.title, max_new_bullets=25)
 
     delta = LearningDelta(
         topic_added=post.title,
-        keywords_logged=list({*(post.keywords_used or []), brief.target_keyword, *brief.secondary_keywords}),
+        keywords_logged=keywords_logged,
         quality_score_logged=ev.overall_score,
         patterns_observed=patterns,
-        next_priority_topics=next_topics[:5],
-        do_not_repeat=do_not[:12],
+        next_priority_topics=next_topics,
+        do_not_repeat=do_not,
     )
     state.learning_delta = delta
     store.update_learning(cfg.client_id, state.loop_id, delta)

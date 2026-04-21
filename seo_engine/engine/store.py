@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import json
+import re
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from seo_engine.engine.state import LearningDelta
 
@@ -247,7 +248,11 @@ class KnowledgeStore:
     def update_learning(self, client_id: str, loop_id: str, delta: LearningDelta) -> None:
         prev = self.get_learning_state(client_id)
         priorities = _merge_unique(prev.get("priority_topics") if prev else [], delta.next_priority_topics)
-        do_not = _merge_unique(prev.get("do_not_repeat") if prev else [], delta.do_not_repeat)
+        do_not = _merge_unique(
+            prev.get("do_not_repeat") if prev else [],
+            delta.do_not_repeat,
+            line_key=_avoid_merge_key,
+        )
         patterns = _merge_unique(
             prev.get("quality_patterns") if prev else [],
             delta.patterns_observed,
@@ -374,7 +379,14 @@ class KnowledgeStore:
     def list_learning_history(self, client_id: str, limit: int = 20) -> list[dict[str, Any]]:
         cur = self._conn.execute(
             """
-            SELECT * FROM learning_store WHERE client_id = ? ORDER BY id DESC LIMIT ?
+            SELECT l.*,
+                   (SELECT a.title FROM articles a
+                    WHERE a.client_id = l.client_id AND a.loop_id = l.loop_id LIMIT 1) AS article_title,
+                   (SELECT a.slug FROM articles a
+                    WHERE a.client_id = l.client_id AND a.loop_id = l.loop_id LIMIT 1) AS article_slug
+            FROM learning_store l
+            WHERE l.client_id = ?
+            ORDER BY l.id DESC LIMIT ?
             """,
             (client_id, limit),
         )
@@ -576,18 +588,39 @@ class KnowledgeStore:
         return {"publish_path": pub}
 
 
+def _avoid_merge_key(s: str) -> str:
+    """Normalize avoid lines so near-duplicates (punctuation / spacing) merge once."""
+    t = str(s).strip().lower()
+    if t.startswith("▸"):
+        t = t[1:].lstrip()
+    t = re.sub(r"\s+", " ", t)
+    t = re.sub(r"[^a-z0-9\s]", "", t)
+    t = re.sub(r"\s+", " ", t).strip()
+    return t if t else str(s).strip().lower()
+
+
 def _merge_unique(
     existing: list[str],
     new_items: list[str],
     max_len: int | None = None,
+    *,
+    line_key: Callable[[str], str] | None = None,
 ) -> list[str]:
+    def default_key(x: str) -> str:
+        return str(x).strip().lower()
+
+    key_fn = line_key or default_key
+
     seen: set[str] = set()
     out: list[str] = []
     for x in list(existing) + list(new_items):
         s = str(x).strip()
-        if not s or s.lower() in seen:
+        if not s:
             continue
-        seen.add(s.lower())
+        k = key_fn(s)
+        if not k or k in seen:
+            continue
+        seen.add(k)
         out.append(s)
         if max_len is not None and len(out) >= max_len:
             break

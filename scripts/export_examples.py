@@ -109,11 +109,13 @@ def main() -> int:
         print(f"wrote {eval_path.relative_to(REPO_ROOT)}", flush=True)
 
         learn_out = {
-            "_comment": "Exported by scripts/export_examples.py; one learning_store row after merge (JSON columns parsed).",
+            "_comment": "Exported by scripts/export_examples.py; one learning_store row after merge (JSON columns parsed; matches GET /api/clients/{id}/learning).",
             "id": learn["id"],
             "client_id": learn["client_id"],
             "loop_id": learn["loop_id"],
             "updated_at": learn.get("updated_at"),
+            "article_title": learn.get("article_title"),
+            "article_slug": learn.get("article_slug"),
             "priority_topics": learn.get("priority_topics") or [],
             "do_not_repeat": learn.get("do_not_repeat") or [],
             "quality_patterns": learn.get("quality_patterns") or [],

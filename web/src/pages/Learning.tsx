@@ -72,6 +72,12 @@ export default function Learning({ clientId }: { clientId: string }) {
           const lid = r.id;
           const idNum = typeof lid === "number" ? lid : Number(lid);
           const hasId = Number.isFinite(idNum);
+          const articleTitle =
+            typeof r.article_title === "string" ? r.article_title.trim() : "";
+          const heading =
+            articleTitle.length > 0
+              ? `«${articleTitle}» · ${formatWhen(String(r.updated_at ?? ""))}`
+              : `Update on ${formatWhen(String(r.updated_at ?? ""))}`;
           return (
           <div
             key={String(r.id)}
@@ -80,7 +86,7 @@ export default function Learning({ clientId }: { clientId: string }) {
           >
             <div className="learning-card-head">
               <h2 className="prose-h3 learning-card-head__title" style={{ fontSize: "1.05rem", marginTop: 0 }}>
-                Update on {formatWhen(String(r.updated_at ?? ""))}
+                {heading}
               </h2>
               {hasId ? (
                 <ListRowActions
@@ -109,7 +115,15 @@ export default function Learning({ clientId }: { clientId: string }) {
             <LearningCategoriesPanel snapshot={r} keywordSampleLimit={25} showUpdatedPill={false} />
             <details className="tech-details">
               <summary>Technical reference</summary>
-              <p className="prose-muted">Internal loop reference: {String(r.loop_id)}</p>
+              <p className="prose-muted">
+                Internal loop reference: {String(r.loop_id)}
+                {typeof r.article_slug === "string" && r.article_slug.trim() ? (
+                  <>
+                    {" "}
+                    · slug: <code>{r.article_slug.trim()}</code>
+                  </>
+                ) : null}
+              </p>
             </details>
           </div>
         );

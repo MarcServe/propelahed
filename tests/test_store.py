@@ -67,10 +67,49 @@ def test_log_article_evaluation_and_learning(tmp_db: Path) -> None:
         assert st is not None
         assert "next-topic" in (st.get("priority_topics") or [])
 
+        hist = store.list_learning_history("c1", limit=5)
+        assert len(hist) == 1
+        assert hist[0]["article_title"] == "Hello"
+        assert hist[0]["article_slug"] == "hello-world"
+
         arts = store.list_articles("c1", limit=10)
         assert len(arts) == 1
         evals = store.list_evaluations("c1", limit=10)
         assert len(evals) == 1
+    finally:
+        store.close()
+
+
+def test_do_not_repeat_merge_fuzzy_dedupes_near_duplicate_lines(tmp_db: Path) -> None:
+    """Avoid list merge treats punctuation/spacing variants as one line."""
+    store = KnowledgeStore(tmp_db)
+    try:
+        base = LearningDelta(
+            topic_added="T",
+            keywords_logged=[],
+            quality_score_logged=1.0,
+            patterns_observed=["p"],
+            next_priority_topics=[],
+            do_not_repeat=[
+                "Avoid readability outside the ideal band. Last draft needed plainer wording, or shorter paragraphs."
+            ],
+        )
+        store.update_learning("c1", "loop-a", base)
+        delta2 = LearningDelta(
+            topic_added="T",
+            keywords_logged=[],
+            quality_score_logged=1.0,
+            patterns_observed=["p2"],
+            next_priority_topics=[],
+            do_not_repeat=[
+                "Avoid readability outside the ideal band! Last draft needed plainer wording — or shorter paragraphs."
+            ],
+        )
+        store.update_learning("c1", "loop-b", delta2)
+        st = store.get_learning_state("c1")
+        lines = list(st.get("do_not_repeat") or [])
+        readability = [x for x in lines if "readability outside" in str(x).lower()]
+        assert len(readability) == 1
     finally:
         store.close()
 
