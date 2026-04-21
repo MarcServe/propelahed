@@ -181,6 +181,7 @@ class KnowledgeStore:
                 d[key] = json.loads(d[key])
             else:
                 d[key] = []
+        d["do_not_repeat"] = _dedupe_avoid_lines(list(d.get("do_not_repeat") or []))
         return d
 
     def get_do_not_repeat(self, client_id: str) -> list[str]:
@@ -395,6 +396,7 @@ class KnowledgeStore:
             d = dict(row)
             for key in ("priority_topics", "do_not_repeat", "quality_patterns", "keyword_registry"):
                 d[key] = json.loads(d[key] or "[]")
+            d["do_not_repeat"] = _dedupe_avoid_lines(list(d.get("do_not_repeat") or []))
             out.append(d)
         return out
 
@@ -597,6 +599,22 @@ def _avoid_merge_key(s: str) -> str:
     t = re.sub(r"[^a-z0-9\s]", "", t)
     t = re.sub(r"\s+", " ", t).strip()
     return t if t else str(s).strip().lower()
+
+
+def _dedupe_avoid_lines(lines: list[str]) -> list[str]:
+    """Order-preserving dedupe for stored Avoid lists (legacy duplicates, ▸ vs plain, etc.)."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for x in lines:
+        s = str(x).strip()
+        if not s:
+            continue
+        k = _avoid_merge_key(s)
+        if not k or k in seen:
+            continue
+        seen.add(k)
+        out.append(s)
+    return out
 
 
 def _merge_unique(

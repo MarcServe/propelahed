@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from seo_engine.engine.state import LearningDelta
-from seo_engine.engine.store import KnowledgeStore
+from seo_engine.engine.store import KnowledgeStore, _dedupe_avoid_lines
 
 
 @pytest.fixture
@@ -112,6 +112,12 @@ def test_do_not_repeat_merge_fuzzy_dedupes_near_duplicate_lines(tmp_db: Path) ->
         assert len(readability) == 1
     finally:
         store.close()
+
+
+def test_dedupe_avoid_lines_collapses_case_and_punct_variants() -> None:
+    a = "Avoid readability outside the ideal band. last draft needed plainer wording or shorter paragraphs."
+    b = "Avoid readability outside the ideal band. Last draft needed plainer wording or shorter paragraphs."
+    assert _dedupe_avoid_lines([a, b]) == [a]
 
 
 def test_gate_events_round_trip(tmp_db: Path) -> None:

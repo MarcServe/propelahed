@@ -1,7 +1,7 @@
 import { useId, useState, type ReactNode } from "react";
 import BulletSection from "./BulletSection";
 import PageTabs, { tabPanelAttrs } from "./PageTabs";
-import { asStringArray, formatWhen, humanizeLearningCopy } from "../formatDisplay";
+import { asStringArray, formatWhen, humanizeLearningCopy, keywordRegistryForDisplay } from "../formatDisplay";
 
 export type LearningSubTab = "topics" | "avoid" | "quality" | "keywords" | "all";
 
@@ -40,7 +40,10 @@ export default function LearningCategoriesPanel({
   const priorities = asStringArray(snapshot.priority_topics).map(humanizeLearningCopy);
   const avoid = asStringArray(snapshot.do_not_repeat).map(humanizeLearningCopy);
   const patterns = asStringArray(snapshot.quality_patterns).map(humanizeLearningCopy);
-  const keywords = asStringArray(snapshot.keyword_registry).slice(0, keywordSampleLimit).map(humanizeLearningCopy);
+  const keywords = keywordRegistryForDisplay(
+    asStringArray(snapshot.keyword_registry),
+    keywordSampleLimit,
+  ).map(humanizeLearningCopy);
 
   const empty =
     variant === "home"

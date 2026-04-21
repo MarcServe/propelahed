@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from seo_engine.engine.state import ContentBrief, EvaluationResult, LearningDelta, State
-from seo_engine.engine.store import KnowledgeStore
+from seo_engine.engine.store import KnowledgeStore, _avoid_merge_key
 
 
 def _derive_next_priority_topics(ev: EvaluationResult, brief: ContentBrief) -> list[str]:
@@ -116,8 +116,9 @@ def _annotate_new_lines(
     Uses ▸ so humanizeLearningCopy (which collapses runs of spaces) does not flatten sub-bullets.
     """
     prev = list(prev_merged or [])
-    prev_norm = {p.strip().lower() for p in prev if p.strip()}
-    new_only = [p for p in raw_lines if p.strip() and p.strip().lower() not in prev_norm]
+    # Match merge semantics: ▸-prefixed bullets must compare equal to plain template lines.
+    prev_keys = {_avoid_merge_key(p) for p in prev if p.strip()}
+    new_only = [p for p in raw_lines if p.strip() and _avoid_merge_key(p) not in prev_keys]
     if max_new_bullets is not None and len(new_only) > max_new_bullets:
         new_only = new_only[: max_new_bullets]
     if new_only:

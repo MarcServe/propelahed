@@ -94,6 +94,33 @@ export function asStringArray(v: unknown): string[] {
   return v.map((x) => String(x)).filter(Boolean);
 }
 
+const NEW_FROM_ARTICLE_PREFIX = "New from last article";
+
+/**
+ * Keyword registry merges oldest entries first and appends "New from last article …" blocks at the end.
+ * A naive slice from the start hides the latest block — show the tail block first, then fill from the head.
+ */
+export function keywordRegistryForDisplay(lines: string[], limit: number): string[] {
+  if (!lines.length || limit <= 0) return [];
+  const items = lines.map((x) => String(x));
+  let lastHeader = -1;
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (items[i].trimStart().startsWith(NEW_FROM_ARTICLE_PREFIX)) {
+      lastHeader = i;
+      break;
+    }
+  }
+  if (lastHeader < 0) {
+    return items.slice(0, limit);
+  }
+  const tail = items.slice(lastHeader);
+  if (tail.length >= limit) {
+    return tail.slice(0, limit);
+  }
+  const headBudget = limit - tail.length;
+  return [...tail, ...items.slice(0, lastHeader).slice(0, headBudget)];
+}
+
 export function scoreOutOf(n: unknown, max: number): string {
   const x = typeof n === "number" ? n : parseFloat(String(n));
   if (Number.isNaN(x)) return "Not scored";

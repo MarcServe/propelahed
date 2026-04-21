@@ -52,3 +52,14 @@ def test_next_topics_gets_same_new_header_shape() -> None:
     out = _annotate_new_lines(["Topic A", "Topic B"], [], "Run title")
     assert "Run title" in out[0]
     assert out[1].startswith("▸ ") and "Topic A" in out[1]
+
+
+def test_annotate_skips_line_already_present_as_bullet_prefixed() -> None:
+    """▸ in merged state must match plain template line (same as store merge)."""
+    plain = (
+        "Avoid readability outside the ideal band. Last draft needed plainer wording or shorter paragraphs."
+    )
+    prev_with_bullet = [f"▸ {plain}"]
+    out = _annotate_new_lines([plain], prev_with_bullet, "Title")
+    assert len(out) == 1
+    assert out[0] == plain

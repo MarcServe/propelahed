@@ -16,6 +16,6 @@ output_dir: ./output/talkweb
 min_word_count: 600
 max_word_count: 4000
 target_word_count: 1200
-keyword_data_source: SERPER
+keyword_data_source: MOCK
 autopilot_enabled: false
 autopilot_time: '09:00'
