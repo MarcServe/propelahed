@@ -16,6 +16,45 @@ Each **client** is a **YAML config** + **SQLite DB** + output folder—**low mar
 - **Node.js 18+** for the web UI.
 - An **Anthropic API key** with access to `claude-sonnet-4-20250514`.
 
+## Dependencies (what the repo installs)
+
+Versions are pinned in the repo; install from those files, not ad hoc.
+
+**Python — [`requirements.txt`](requirements.txt)** (used by `pip install -r requirements.txt`)
+
+| Package | Role in this project |
+|--------|------------------------|
+| `anthropic` | LLM client (research, generation, evaluation) |
+| `pyyaml` | Load/save per-client YAML configs |
+| `textstat` | Readability / length signals for the quality gate |
+| `python-slugify` | Safe filenames and slugs for drafts |
+| `python-dotenv` | Load `.env` at repo root (`orchestrator`, API) |
+| `pytest` | Test runner |
+| `fastapi` | Operator HTTP API |
+| `uvicorn[standard]` | ASGI server for local API |
+| `httpx` | HTTP client (e.g. Serper when enabled) |
+
+**Web UI — [`web/package.json`](web/package.json)** (`cd web && npm install`)
+
+| Area | Main libs |
+|------|-----------|
+| UI | React 18, React Router, Recharts (dashboard charts) |
+| Build | Vite 5, TypeScript, `@vitejs/plugin-react` |
+| Config | `js-yaml` (read/write client YAML from the browser via API) |
+
+There is no `pyproject.toml` or root `package.json`; Python deps live in **`requirements.txt`**, frontend deps in **`web/package.json`**.
+
+## Environment variables
+
+Create **`.env`** from **[`.env.example`](.env.example)** at the **repository root** (same directory as `main.py`). The engine loads it via `python-dotenv` when you run the CLI or API.
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `ANTHROPIC_API_KEY` | Yes (for real runs) | Anthropic API access for the pipeline |
+| `SERPER_API_KEY` | No | Google search via [Serper](https://serper.dev) when `keyword_data_source` is `SERPER` in YAML/Settings |
+
+Secrets are **not** committed; **`.env`** is gitignored.
+
 ## Setup
 
 ```bash
@@ -39,6 +78,22 @@ python main.py --config seo_engine/config/talkweb.yaml
 
 - **In the UI:** **Settings → Schedule & autopilot** saves `autopilot_enabled` + `autopilot_time` into the client YAML. **Leave Content workspace running** (the backend process, usually started with `uvicorn` as below): the schedule uses the **clock on that computer**, up to **one automatic run per day**, with the same logic as **Write new article** (automatic topic choice).
 - **Outside the app:** OS **cron** can still invoke **`scripts/run_loop_once.sh`** or `python main.py` with **`PROPELHED_CONFIG`** pointing at the client YAML.
+
+**`PROPELHED_CONFIG`** — optional env var used by [`scripts/run_loop_once.sh`](scripts/run_loop_once.sh): path to the client YAML. Defaults to `seo_engine/config/talkweb.yaml` under the repo root.
+
+## Pipeline (one closed loop)
+
+Entry point: **`run_loop()`** in [`seo_engine/engine/orchestrator.py`](seo_engine/engine/orchestrator.py) — loads **`.env`**, reads client YAML, opens **`data/{client_id}.db`**, then runs stages in order:
+
+| Stage | Module | What it does |
+|-------|--------|----------------|
+| 1 — Research | [`stage1_research.py`](seo_engine/engine/stage1_research.py) | Topic cluster + gaps + brief; reads prior learning from SQLite |
+| 2 — Generate (+ gate) | [`stage2_generate.py`](seo_engine/engine/stage2_generate.py) | Draft article; quality gate can fail the loop |
+| 3 — Publish | [`stage3_publish.py`](seo_engine/engine/stage3_publish.py) | Writes Markdown when `publish_destination` is `LOCAL_MARKDOWN` |
+| 4 — Evaluate | [`stage4_evaluate.py`](seo_engine/engine/stage4_evaluate.py) | Scores the draft (structured result used by learn) |
+| 5 — Learn | [`stage5_learn.py`](seo_engine/engine/stage5_learn.py) | Merges evaluation into learning store in SQLite |
+
+Shared pieces: **[`state.py`](seo_engine/engine/state.py)** (config + run state), **[`store.py`](seo_engine/engine/store.py)** (SQLite `KnowledgeStore`), **[`gate.py`](seo_engine/engine/gate.py)** (quality gate), **[`prompts/`](seo_engine/prompts/)** (templates). Prompts and YAML under **`seo_engine/config/`** define behavior per client.
 
 Artifacts:
 
@@ -87,10 +142,21 @@ python -m pytest -q
 | `seo_engine/api/` | FastAPI routes, background jobs |
 | `seo_engine/prompts/` | Research / generate prompt templates |
 | `seo_engine/config/` | Per-client YAML (`talkweb.yaml` example) |
-| `web/` | Operator dashboard |
-| `main.py` | CLI entry |
+| `web/` | Operator dashboard (Vite: `vite.config.ts`, `src/`) |
+| `main.py` | CLI entry (`--config` path to client YAML) |
+| `requirements.txt` | Python dependencies |
 | `scripts/run_loop_once.sh` | Example one-shot runner for cron / automation |
 | [`JUDGEMENT.md`](JUDGEMENT.md) | Scope, risks, and what was cut (see also [`seo_engine/JUDGEMENT.md`](seo_engine/JUDGEMENT.md)) |
+
+**Suggested reading order for a new contributor**
+
+1. This README → **[`JUDGEMENT.md`](JUDGEMENT.md)** (product intent and tradeoffs).
+2. **[`seo_engine/engine/orchestrator.py`](seo_engine/engine/orchestrator.py)** (`run_loop`) → stage modules `stage1_*` … `stage5_*`.
+3. Example client config **[`seo_engine/config/talkweb.yaml`](seo_engine/config/talkweb.yaml)**.
+4. Checked-in output shapes **[`examples/README.md`](examples/README.md)** (no need for local `data/` or `seo_engine/output/` to understand artifacts).
+
+**What stays local (gitignored)**  
+**`.env`**, **`data/*.db`**, **`seo_engine/output/`**, **`node_modules/`**, **`web/dist/`** — see [`.gitignore`](.gitignore). Use **`examples/`** for committed samples of the same shapes (see below).
 
 ## Example output (one complete loop)
 
