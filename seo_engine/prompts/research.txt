@@ -15,9 +15,12 @@ Learning store snapshot (what was already covered, priorities, do-not-repeat, pa
 Deterministic candidate topics/keywords after deduplication (you MUST pick the primary target_keyword from this list or a clear variant of one entry — do not repeat covered items):
 {{DEDUPED_CANDIDATES}}
 
+Published pages already on this site (slug + title — pick slugs that relate to the new article’s angle; empty list if none yet):
+{{PUBLISHED_ARTICLES_CATALOG}}
+
 Rules:
 - Choose one primary target_keyword and a tight cluster of secondary_keywords.
-- internal_link_candidates should list slugs or titles of prior articles to link to (from snapshot); use [] if none.
+- internal_link_candidates should list **slugs** from the published catalog above that would make strong contextual internal links for this brief (topic overlap, reader journey); use [] if none or catalog is empty.
 - avoid_topics should echo relevant do-not-repeat / near-duplicate themes.
 - audience_note should reflect the client's audience.
 - rationale must explain why this topic advances coverage and is not redundant.

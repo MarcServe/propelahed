@@ -21,7 +21,7 @@ def _derive_next_priority_topics(ev: EvaluationResult, brief: ContentBrief) -> l
     if ev.structural_completeness < 15:
         out.append(f"Guide with strong headings and CTA on {kw} (intro, 3+ sections, conclusion)")
     if ev.internal_linking < 7:
-        out.append(f"Cornerstone page on {kw} with multiple internal [LINK: slug] placements")
+        out.append(f"Cornerstone page on {kw} with multiple internal links to related live pages")
 
     for line in ev.findings:
         if "next" in line.lower() and ":" in line:
@@ -80,7 +80,7 @@ def _derive_do_not_repeat(ev: EvaluationResult, brief: ContentBrief) -> list[str
         )
     if ev.internal_linking < 7:
         out.append(
-            "Avoid shipping without enough internal links. Last draft needed more relevant [LINK: slug] placements."
+            "Avoid shipping without enough internal links. Last draft needed more links to other pages on this site."
         )
 
     if ev.overall_score < 60:

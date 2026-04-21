@@ -177,3 +177,5 @@ That overwrites the three sample files from `data/talkweb.db` (latest evaluation
 
 **Implemented:** **`LOCAL_MARKDOWN`** only—drafts are written under the configured output directory (`stage3_publish`).  
 **Not implemented:** **`GHOST_API`** and **`WEBHOOK`** are accepted in client YAML / Settings for forward compatibility but **will error at publish time** if selected (`NotImplementedError`). Use local Markdown until those destinations are implemented.
+
+**Internal links:** The generator still outputs `[LINK: slug]` placeholders; after each run they are **resolved** to real Markdown links `[page title](https://…)` using **Settings → Publishing** (`public_base_url`, optional `url_path_prefix`) and **titles** from published articles in your DB. Research sees a **catalog of published slug/title pairs** so `internal_link_candidates` can target related pages.

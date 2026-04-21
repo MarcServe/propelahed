@@ -6,6 +6,7 @@ import re
 import textstat
 
 from seo_engine.engine.gate import count_h2_atx, keyword_density, opening_text, primary_keyword_in_text
+from seo_engine.engine.internal_links import score_internal_linking_body
 from seo_engine.engine.llm import semantic_coverage_score
 from seo_engine.engine.state import EvaluationResult, State
 
@@ -93,20 +94,6 @@ def _score_structural(body: str) -> float:
     return min(20.0, pts)
 
 
-def _internal_link_slugs(body: str) -> list[str]:
-    return re.findall(r"\[LINK:\s*([^\]]+?)\s*\]", body, flags=re.IGNORECASE)
-
-
-def _score_internal_linking(body: str) -> float:
-    slugs = [s.strip() for s in _internal_link_slugs(body) if s.strip()]
-    distinct = {s.lower() for s in slugs}
-    if not distinct:
-        return 0.0
-    if len(distinct) >= 2:
-        return 10.0
-    return 5.0
-
-
 def run_evaluate(state: State) -> None:
     state.stage_reached = 4
     if not state.post or not state.brief:
@@ -125,7 +112,7 @@ def run_evaluate(state: State) -> None:
     kw_u = _score_keyword_usage(post.title, post.body_markdown, brief.target_keyword)
     read = _score_readability(post.body_markdown)
     struct = _score_structural(post.body_markdown)
-    il = _score_internal_linking(post.body_markdown)
+    il = score_internal_linking_body(post.body_markdown, state.config)
 
     overall = sem + kw_u + read + struct + il
     findings: list[str] = []
@@ -138,7 +125,7 @@ def run_evaluate(state: State) -> None:
     if struct < 15:
         findings.append("Structure: strengthen intro, H2 depth, conclusion, or CTA.")
     if il < 8:
-        findings.append("Add more relevant internal [LINK: slug] placeholders.")
+        findings.append("Add more relevant internal links to other pages on this site (two distinct targets when possible).")
 
     flags: list[str] = []
     if overall < 60:

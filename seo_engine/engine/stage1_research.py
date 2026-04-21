@@ -140,6 +140,11 @@ def run_research(
     )
     excluded = json.dumps(cfg.excluded_topics or [], indent=2)
     deduped_s = json.dumps(deduped, indent=2)
+    published_rows = store.list_articles(cfg.client_id, limit=100)
+    published_catalog = json.dumps(
+        [{"slug": r["slug"], "title": r["title"]} for r in published_rows],
+        indent=2,
+    )
 
     system, user = build_research_prompts(
         learning_snapshot=learning_snapshot,
@@ -147,6 +152,7 @@ def run_research(
         config_yaml_summary=config_summary,
         excluded=excluded,
         deduped_candidates=deduped_s,
+        published_articles_catalog=published_catalog,
     )
     op_hint = (store.get_research_hint(cfg.client_id).get("hint") or "").strip()
     if op_hint:

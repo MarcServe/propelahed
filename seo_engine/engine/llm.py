@@ -49,6 +49,7 @@ def build_research_prompts(
     config_yaml_summary: str,
     excluded: str,
     deduped_candidates: str,
+    published_articles_catalog: str,
 ) -> tuple[str, str]:
     system = _load_prompt("research.txt")
     system = system.replace("{{LEARNING_SNAPSHOT}}", learning_snapshot)
@@ -56,6 +57,7 @@ def build_research_prompts(
     system = system.replace("{{CLIENT_CONFIG_SUMMARY}}", config_yaml_summary)
     system = system.replace("{{EXCLUDED_TOPICS}}", excluded)
     system = system.replace("{{DEDUPED_CANDIDATES}}", deduped_candidates)
+    system = system.replace("{{PUBLISHED_ARTICLES_CATALOG}}", published_articles_catalog)
     user = (
         "Return a single JSON object matching the ContentBrief schema exactly:\n"
         '{"target_keyword": str, "secondary_keywords": [str], "title_suggestion": str, '

@@ -328,6 +328,36 @@ export default function ConfigEditor({ clientId }: { clientId: string }) {
             placeholder="./output/yoursite"
           />
         </FormField>
+        <FormField
+          id={`${baseId}-public_base_url`}
+          label="Public site URL (for internal links)"
+          hint='Optional. Full origin such as https://talkweb.io — used to turn [LINK: slug] into real links in drafts. Leave blank to use https:// plus your domain above.'
+        >
+          <input
+            id={`${baseId}-public_base_url`}
+            className="form-input"
+            value={form.public_base_url}
+            onChange={(e) => patch({ public_base_url: e.target.value })}
+            spellCheck={false}
+            placeholder="https://talkweb.io"
+            autoComplete="off"
+          />
+        </FormField>
+        <FormField
+          id={`${baseId}-url_path_prefix`}
+          label="URL path before article slug"
+          hint='Optional. For example /blog if URLs look like https://site.com/blog/my-post. Leave empty for https://site.com/my-post.'
+        >
+          <input
+            id={`${baseId}-url_path_prefix`}
+            className="form-input"
+            value={form.url_path_prefix}
+            onChange={(e) => patch({ url_path_prefix: e.target.value })}
+            spellCheck={false}
+            placeholder="/blog"
+            autoComplete="off"
+          />
+        </FormField>
         {form.publish_destination === "GHOST_API" && (
           <>
             <FormField

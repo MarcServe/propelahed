@@ -13,6 +13,10 @@ export type WorkspaceConfigForm = {
   brand_voice_notes: string;
   publish_destination: PublishDestination;
   output_dir: string;
+  /** Full site origin for internal links, e.g. https://example.com (optional; defaults to https://{domain}) */
+  public_base_url: string;
+  /** URL path before slug, e.g. /blog → https://site/blog/my-post */
+  url_path_prefix: string;
   ghost_api_url: string;
   ghost_api_key: string;
   webhook_url: string;
@@ -36,6 +40,8 @@ export const EMPTY_FORM: WorkspaceConfigForm = {
   brand_voice_notes: "",
   publish_destination: "LOCAL_MARKDOWN",
   output_dir: "./output",
+  public_base_url: "",
+  url_path_prefix: "",
   ghost_api_url: "",
   ghost_api_key: "",
   webhook_url: "",
@@ -114,6 +120,8 @@ export function parseYamlToForm(text: string): WorkspaceConfigForm {
     brand_voice_notes: asString(o.brand_voice_notes),
     publish_destination: asPublishDestination(o.publish_destination),
     output_dir: asString(o.output_dir),
+    public_base_url: asString(o.public_base_url),
+    url_path_prefix: asString(o.url_path_prefix),
     ghost_api_url: asString(o.ghost_api_url),
     ghost_api_key: asString(o.ghost_api_key),
     webhook_url: asString(o.webhook_url),
@@ -161,6 +169,13 @@ export function formToSerializableObject(form: WorkspaceConfigForm): Record<stri
 
   if (form.publish_destination === "WEBHOOK" && form.webhook_url.trim()) {
     out.webhook_url = form.webhook_url.trim();
+  }
+
+  if (form.public_base_url.trim()) {
+    out.public_base_url = form.public_base_url.trim();
+  }
+  if (form.url_path_prefix.trim()) {
+    out.url_path_prefix = form.url_path_prefix.trim();
   }
 
   const serperResolved = form.serper_api_key.trim();

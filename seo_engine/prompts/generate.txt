@@ -21,7 +21,7 @@ Hard requirements:
 - First paragraphs must naturally include the primary keyword from the brief; at least one "## " heading should also include the primary keyword phrase (or clear variant) where it reads naturally.
 - The JSON "title" MUST contain the primary keyword phrase above as a **contiguous substring** (case may differ, e.g. "AI receptionist" satisfies "ai receptionist"). Do not split the phrase across punctuation in a way that breaks substring matching. If unsure, use the phrase verbatim at the start: e.g. "{{PRIMARY_KEYWORD}}: …" or "{{PRIMARY_KEYWORD}} — …".
 - Meta description: max 160 characters, compelling, includes primary keyword if natural.
-- Include internal links using exact placeholder syntax: [LINK: some-slug] where slug matches prior posts from internal_link_candidates when possible (aim for at least two distinct slugs when candidates exist).
+- Include internal links using exact placeholder syntax: [LINK: some-slug] where slug matches prior posts from internal_link_candidates when possible (aim for at least two distinct slugs when candidates exist). After generation, the engine replaces each placeholder with a real Markdown link [page title](https://your-public-site/...) using titles from your published library and Settings → Publishing (public URL).
 - End with a conclusion section that includes a business-oriented CTA (e.g. book a demo, contact us) — use plain language.
 - word_count in JSON should match approximate body length (words in body_markdown).
 - Readability: prefer plain sentences and concrete examples; avoid stuffing the keyword—aim for approachable UK business English (roughly upper-secondary to professional reading level).

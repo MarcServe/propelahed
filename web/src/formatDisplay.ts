@@ -75,7 +75,7 @@ export function explainWarning(line: string): string {
     return "The focus phrase appears very often in the body; it may sound repetitive.";
   }
   if (low.includes("no_internal_link")) {
-    return "The draft had no internal links using the [LINK: page-name] placeholder.";
+    return "The draft had no internal links to your site (no [LINK: …] placeholders or links to your domain).";
   }
   if (low.includes("no_conclusion")) {
     return "A clear closing or conclusion section was not detected.";

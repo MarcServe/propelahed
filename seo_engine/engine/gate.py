@@ -7,6 +7,7 @@ from typing import Any
 
 import textstat
 
+from seo_engine.engine.internal_links import body_has_internal_link_signal
 from seo_engine.engine.state import ClientConfig, ContentBrief, GeneratedPost, GateResult
 
 
@@ -38,6 +39,8 @@ def count_h2_atx(body: str) -> int:
 def word_count_body(body: str) -> int:
     text = re.sub(r"```[\s\S]*?```", " ", body)
     text = re.sub(r"\[LINK:\s*[^\]]+\]", " ", text)
+    # Markdown links: count anchor text only (not URL tokens)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
     words = re.findall(r"[A-Za-z0-9']+", text)
     return len(words)
 
@@ -122,7 +125,7 @@ def run_gate(
     if dens > 2.5:
         warnings.append(f"keyword_density_high ({dens:.2f}%)")
 
-    if "[LINK:" not in post.body_markdown:
+    if not body_has_internal_link_signal(post.body_markdown, config):
         warnings.append("no_internal_link_placeholders")
 
     if not _has_conclusion_signal(post.body_markdown):

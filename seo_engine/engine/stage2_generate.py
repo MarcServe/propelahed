@@ -15,6 +15,7 @@ from seo_engine.engine.gate import (
     validate_generated_post_dict,
     word_count_body,
 )
+from seo_engine.engine.internal_links import resolve_link_placeholders, slug_title_map_from_articles
 from seo_engine.engine.llm import build_generate_prompts, call_llm_json
 from seo_engine.engine.state import ContentBrief, GeneratedPost, State
 from seo_engine.engine.store import KnowledgeStore, learning_snapshot_text
@@ -106,6 +107,15 @@ def run_generate(state: State, store: KnowledgeStore) -> None:
                 new_title = new_title[:200]
             new_slug = slugify(new_title)[:80] or slug
             post = replace(post, title=new_title, slug=new_slug)
+
+        art_rows = store.list_articles(cfg.client_id, limit=120)
+        slug_map = slug_title_map_from_articles(art_rows)
+        resolved_body = resolve_link_placeholders(post.body_markdown, cfg, slug_map)
+        post = replace(
+            post,
+            body_markdown=resolved_body,
+            word_count=word_count_body(resolved_body),
+        )
     except (KeyError, TypeError, ValueError) as e:
         gate_res = run_gate(
             GeneratedPost(

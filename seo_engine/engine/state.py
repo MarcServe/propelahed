@@ -29,6 +29,10 @@ class ClientConfig:
     excluded_topics: list[str] = field(default_factory=list)
     autopilot_enabled: bool = False
     autopilot_time: str = ""  # Server-local HH:MM (24h) for one automatic run per day
+    # Optional: override origin for resolved internal links (default https://{domain})
+    public_base_url: str | None = None
+    # Path segment before slug, e.g. "/blog" -> https://site/blog/my-slug
+    url_path_prefix: str = ""
 
     @staticmethod
     def from_yaml(path: str | Path) -> ClientConfig:
@@ -79,6 +83,8 @@ class ClientConfig:
             excluded_topics=list(raw.get("excluded_topics") or []),
             autopilot_enabled=bool(raw.get("autopilot_enabled", False)),
             autopilot_time=str(raw.get("autopilot_time") or "").strip(),
+            public_base_url=raw.get("public_base_url"),
+            url_path_prefix=str(raw.get("url_path_prefix") or "").strip(),
         )
 
 
