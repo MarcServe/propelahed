@@ -1,4 +1,4 @@
-# Propelhed — Autonomous SEO Content Engine
+# Propelahed — Autonomous SEO Content Engine
 
 Python pipeline (research → generate → quality gate → publish → evaluate → learn) with SQLite persistence, plus a **local operator UI** (Vite + React + FastAPI).
 
